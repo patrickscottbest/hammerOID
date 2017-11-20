@@ -1,0 +1,36 @@
+                $extra_args = api_plugin_hook_function('poller_command_args', $extra_args);
+
+...for the verbosity.
+
+3 is what we're gonna need.
+
+
+
+root@cacti:/var/www/html/cacti/lib# /usr/local/spine/bin/spine -V=1 -R -S -C /usr/local/spine/etc/spine.conf | wc -l 
+82
+root@cacti:/var/www/html/cacti/lib# /usr/local/spine/bin/spine -V=2 -R -S -C /usr/local/spine/etc/spine.conf | wc -l 
+82
+
+root@cacti:/var/www/html/cacti/lib# /usr/local/spine/bin/spine -V=3 -R -S -C /usr/local/spine/etc/spine.conf | wc -l 
+241
+root@cacti:/var/www/html/cacti/plugins/hammerOID/notes# /usr/local/spine/bin/spine -V=3 -R -S -C /usr/local/spine/etc/spine.conf | grep Time
+Device[1] TH[1] Total Time:  0.23 Seconds
+Device[5] TH[1] Total Time:  0.51 Seconds
+Device[2] TH[1] Total Time:  0.51 Seconds
+Device[4] TH[1] Total Time:   2.8 Seconds
+
+
+
+
+root@cacti:/var/www/html/cacti/lib# /usr/local/spine/bin/spine -V=4 -R -S -C /usr/local/spine/etc/spine.conf | wc -l 
+246
+root@cacti:/var/www/html/cacti/lib# /usr/local/spine/bin/spine -V=5 -R -S -C /usr/local/spine/etc/spine.conf | wc -l 
+311
+root@cacti:/var/www/html/cacti/lib# /usr/local/spine/bin/spine -V=6 -R -S -C /usr/local/spine/etc/spine.conf | wc -l 
+387
+root@cacti:/var/www/html/cacti/lib# /usr/local/spine/bin/spine -V=7 -R -S -C /usr/local/spine/etc/spine.conf | wc -l 
+387
+root@cacti:/var/www/html/cacti/lib# 
+
+
+can happen real time, or occasionally.

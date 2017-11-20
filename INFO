@@ -1,0 +1,8 @@
+[info]
+name = hammerOID
+version = 1.0.0
+longname = hammerOID - OID and Poll Timer Tuning Utility
+author = Patrick Scott Best
+email = patrickscottbest@gmail.com
+homepage = http://docs.cacti.net/userplugin:hammerOID
+compat = 1.0.0

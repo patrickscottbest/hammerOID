@@ -1,0 +1,54 @@
+<interface>
+	<name>Provide Scraped Poll Timers Per Host</name>
+	<script_path>|path_cacti|/plugins/hammerOID/scripts/ss_hammerOID.php</script_path>
+	<script_function>ss_host_polltime</script_function>
+	<script_server>php</script_server>
+	<arg_prepend>|host_id|</arg_prepend>
+	<arg_index>index</arg_index>
+	<arg_query>query</arg_query>
+	<arg_get>get</arg_get>
+	<arg_num_indexes>num_indexes</arg_num_indexes>
+	<output_delimeter>!</output_delimeter>
+	<index_order>hostid</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>host#|chosen_order_field|</index_title_format>
+
+	<fields>
+		<hostid>
+			<name>hostid number</name>
+			<direction>input</direction>
+			<query_name>index</query_name>
+		</hostid>
+
+		<polling_time>
+			<name>Polling Time</name>
+			<direction>output</direction>
+			<query_name>polling_time</query_name>
+		</polling_time>
+		<min_time>
+			<name>Min Time</name>
+			<direction>output</direction>
+			<query_name>min_time</query_name>
+		</min_time>
+		<max_time>
+			<name>Max Time</name>
+			<direction>output</direction>
+			<query_name>max_time</query_name>
+		</max_time>
+		<cur_time>
+			<name>Current Time</name>
+			<direction>output</direction>
+			<query_name>cur_time</query_name>
+		</cur_time>
+		<avg_time>
+			<name>Average Time</name>
+			<direction>output</direction>
+			<query_name>avg_time</query_name>
+		</avg_time>
+		<max_oids>
+			<name>Max OID</name>
+			<direction>output</direction>
+			<query_name>max_oids</query_name>
+		</max_oids>
+	</fields>
+</interface>
