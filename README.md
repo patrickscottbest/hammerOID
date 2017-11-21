@@ -49,6 +49,7 @@ http://realworldnumbers.com/cacti-tuning-how-to-set-maximum-oids-per-get-request
  
  Procedure:
  * Untar/unzip plugin file into **$CACTI_HOME/plugins/**
+ * Ensure that the directory name is **hammerOID/** , if downloaded from git it may look like hammerOID-master, this is incorrect.
  * Ensure permission are correct (**$CACTI_HOME/plugins/hammerOID**), generally owned by www-data:cactiuser 
  * Install hammerOID through Cacti Plugin Management
  * Enable hammerOID plugin through Cacti Plugin Management
