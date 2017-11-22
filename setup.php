@@ -26,18 +26,18 @@ function plugin_hammerOID_install () {
 	api_plugin_register_hook('hammerOID', 'api_device_new', 'hammerOID_device_new', 'api/hammerOID_device_new.php');
 	api_plugin_register_hook('hammerOID', 'poller_bottom', 'hammerOID_poller_bottom', 'api/hammerOID_poller_bottom.php');
 
-//	# Register our realms
-//	api_plugin_register_realm('hammerOID', 'mactrack_view_ips.php,mactrack_view_arp.php,mactrack_view_macs.php,mactrack_view_sites.php,mactrack_view_devices.php,mactrack_view_interfaces.php,mactrack_view_graphs.php,mactrack_ajax.php', 'MacTrack Viewer', 1);
+        api_plugin_register_hook('hammerOID', 'top_header_tabs',       'hammerOID_show_tab', 'setup.php');
+        api_plugin_register_hook('hammerOID', 'top_graph_header_tabs', 'hammerOID_show_tab', 'setup.php');
+	
+	api_plugin_register_realm('hammerOID', 'hammerOID.php', 'hammerOID Control Panel', 1);
 
 //	api_plugin_register_realm('hammerOID', 'mactrack_ajax_admin.php,mactrack_devices.php,mactrack_snmp.php,mactrack_sites.php,mactrack_device_types.php,mactrack_utilities.php,mactrack_macwatch.php,mactrack_macauth.php,mactrack_vendormacs.php', 'MacTrack Administrator', 1);
 
 
-/* no need for hooks on these right now. 
-// need to pop in our spine verbosity level here 
+	/* no need for hooks on these right now. 
+	// need to pop in our spine verbosity level here 
 
-	// Main purpose.  We will gather all the latest poll times, modify the OIDs number,  and refresh our database after each poll cycle.
-	//   	only after the current polling is done (to prepare values for the next)
-		api_plugin_register_hook('hammerOID','poller_bottom');
+	api_plugin_register_hook('hammerOID','poller_bottom');
 
 	// we'll need this for further integrations , make spine practice pollings and scrape the output with verbosity set.
 		api_plugin_register_hook('hammerOID', 'poller_command_args', 'poller_extra_args', 'includes/polling_extra_args.php');
@@ -54,7 +54,7 @@ function plugin_hammerOID_install () {
 
 		cacti_log("hammerOID: Begin Plugin Installation ");
 
-		/////////////////////////// DEBUG auto on
+		/////////////////////////// DEBUG auto on , only for Dev branch
 		set_config_option('hammerOID_debug','on');
 		cacti_log("hammerOID: Installation - Auto Debug set to ON");
 		/////////////////////////// 
@@ -587,18 +587,21 @@ function hammerOID_config_settings () {
                 );
 }
 
-function hammerOID_show_tab () {
-        //global $config, $user_auth_realm_filenames;
-        global $config;
 
-                if (substr_count($_SERVER['REQUEST_URI'], 'hammerOID_view_')) {
-                        print '<a href="' . $config['url_path'] . 'plugins/hammerOID/hammerOID_view.php"><img src="' . $config['
-url_path'] . 'plugins/hammerOID/images/tab_hammerOID_down.png" alt="' . __('hammerOID') . '"></a>';
+function hammerOID_show_tab() {
+        global $config, $user_auth_realm_filenames;
+
+        if (api_user_realm_auth('hammerOID.php')) {
+                if (substr_count($_SERVER['REQUEST_URI'], 'hammerOID.php')) {
+                        print '<a href="' . $config['url_path'] . 'plugins/hammerOID/hammerOID.php"><img src="' . $config['url_path'] . '
+plugins/hammerOID/images/tab_hammerOID_down.gif" alt="' . __('hammerOID', 'hammerOID') . '"></a>';
                 }else{
-                        print '<a href="' . $config['url_path'] . 'plugins/hammerOID/hammerOID_view.php"><img src="' . $config['
-url_path'] . 'plugins/hammerOID/images/tab_hammerOID.png" alt="' . __('hammerOID') . '"></a>';
+                        print '<a href="' . $config['url_path'] . 'plugins/hammerOID/hammerOID.php"><img src="' . $config['url_path'] . '
+plugins/hammerOID/images/tab_hammerOID.gif" alt="' . __('hammerOID', 'hammerOID') . '"></a>';
                 }
+        }
 }
+
 
 
 ?>
