@@ -34,7 +34,7 @@ if (!isset($called_by_script_server)) {
 }
 else { 
 
-	cacti_log("hammerOID - ss_hammerOID.php called by script server"); 
+	//cacti_log("hammerOID - ss_hammerOID.php called by script server"); 
 
 	include_once($config['base_path'] . '/lib/utility.php');
 	include_once($config['base_path'] . '/lib/import.php');

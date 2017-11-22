@@ -35,7 +35,7 @@ if (!isset($called_by_script_server)) {
 }
 else { 
 
-	cacti_log("hammerOID - ss_hammerOID.pollers.php called by script server"); 
+	//cacti_log("hammerOID - ss_hammerOID.pollers.php called by script server"); 
 
 	include_once($config['base_path'] . '/lib/utility.php');
 	include_once($config['base_path'] . '/lib/import.php');
@@ -73,7 +73,7 @@ function ss_hammerOID_pollers( $cmd, $arg1 = '', $arg2 = '') {
 
 	} elseif ($cmd == 'get') {
 
-		cacti_log("hammerOID - ss_hammerOID.pollers.php Received a \"get\" command"); 
+		//cacti_log("hammerOID - ss_hammerOID.pollers.php Received a \"get\" command"); 
 
 		$exists_already = db_fetch_row("SELECT ".$arg1." FROM poller WHERE id=".$arg2."");
 		if (isset($exists_already)) {
@@ -88,20 +88,20 @@ function ss_hammerOID_pollers( $cmd, $arg1 = '', $arg2 = '') {
 
 		} 
 		else {
-			cacti_log("hammerOID - ss_hammerOID.pollers.php - \"get\" - couldn't find a matching row"); 
+			//cacti_log("hammerOID - ss_hammerOID.pollers.php - \"get\" - couldn't find a matching row"); 
 			return 'U' ;	// if i don't have a record of it, then let's just send back U, to be interpreted as NaN. 
 					// perhaps next poll cycle scrape it will be there.  Good luck!
 		}
 
 	} 
 	else {
-		cacti_log("hammerOID - ss_hammerOID.pollers.php Didn't receive a command"); 
+		//cacti_log("hammerOID - ss_hammerOID.pollers.php Didn't receive a command"); 
 	}
 
 } 
 
 function ss_hammerOID_pollers_indexes() {
-	cacti_log("hammerOID - ss_hammerOID.pollers.php Getting list of indexes"); 
+	//cacti_log("hammerOID - ss_hammerOID.pollers.php Getting list of indexes"); 
 
         $return_arr = array();
 		
