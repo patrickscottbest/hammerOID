@@ -1,0 +1,324 @@
+	<item>
+		<title>CACTI Tuning - How to set Maximum OID&#039;s Per Get Request</title>
+		<link>https://realworldnumbers.com/2013/11/07/cacti-tuning-how-to-set-maximum-oids-per-get-request/</link>
+		<pubDate>Thu, 07 Nov 2013 13:15:20 +0000</pubDate>
+		<dc:creator><![CDATA[realworldnumbers]]></dc:creator>
+		<guid isPermaLink="false">http://realworldnumbers.com//?p=414</guid>
+		<description></description>
+		<content:encoded><![CDATA[Update 2017!  Review my article then see <a href="https://github.com/patrickscottbest/hammerOID">https://github.com/patrickscottbest/hammerOID</a> my new script that does this automatically for you.
+
+There are many parameters to tune in order to ensure you have a well-oiled <a title="http://www.cacti.net/" href="http://www.cacti.net/">Cacti</a>.
+
+<span style="font-size: 13px; line-height: 19px;">The very first step of tuning any installation is to install <a title="http://www.cacti.net/spine_info.php" href="http://www.cacti.net/spine_info.php">Spine poller</a> instead of the included "cmd.php" poller that came with your cacti installation.  This will reduce your overall polling time, and release system resources sooner in order to service web-queries.</span>
+
+No matter what - your polling time must NEVER exceed your polling interval.  The standard polling interval is 5 minutes.  In this case, I'm in the clear, as i'm only taking about 50 of the 300 allotted seconds.
+
+&nbsp;
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# cat /var/log/cacti/cacti.log | grep "SYSTEM STATS" | tail -5</span>
+<span style="color: #000080;">11/07/2013 06:45:51 AM - SYSTEM STATS: Time:49.8120 Method:spine Processes:12 Threads:8 Hosts:302 HostsPerProcess:26 DataSources:83118 RRDsProcessed:32880</span>
+<span style="color: #000080;">11/07/2013 06:50:51 AM - SYSTEM STATS: Time:49.7650 Method:spine Processes:12 Threads:8 Hosts:302 HostsPerProcess:26 DataSources:83118 RRDsProcessed:32880</span>
+<span style="color: #000080;">11/07/2013 06:55:47 AM - SYSTEM STATS: Time:46.1115 Method:spine Processes:12 Threads:8 Hosts:302 HostsPerProcess:26 DataSources:83118 RRDsProcessed:32880</span>
+<span style="color: #000080;">11/07/2013 07:00:48 AM - SYSTEM STATS: Time:47.5557 Method:spine Processes:12 Threads:8 Hosts:302 HostsPerProcess:26 DataSources:83118 RRDsProcessed:32779</span>
+<span style="color: #000080;">11/07/2013 07:05:49 AM - SYSTEM STATS: Time:47.2800 Method:spine Processes:12 Threads:8 Hosts:302 HostsPerProcess:26 DataSources:83118 RRDsProcessed:32880</span></p>
+<span style="color: #000080;"> </span>
+
+The polling interval is controlled by the cronjob.  You shouldn't really touch this, even if you "know what you're doing".
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# cat /etc/cron.d/cacti </span>
+<span style="color: #000080;">*/5 * * * * apache php /usr/share/cacti/poller.php &gt;/dev/null 2&gt;/var/log/cacti/poller-error.log</span></p>
+&nbsp;
+
+Reducing polling time will have the effect of "freeing" the spine threads more quickly to service more polling and fulfill more hosts, as each polling package will occupy less time in the thread.
+
+Here's a visual representation (very basic) of how a 4-thread Spine processes each SNMP bulk request for a device.  There is always a need to specify the number of threads at a per device level, but this article will only focus on reducing the duration a thread is occupied by a given "partial" or "bulk" request.  Needless to say, it's BAD FORM to specify a device should have 8 threads, if you're system only has 8 threads.  What would happen if the remote device stalled out for whatever reason? You've locked all the threads and are burning idle waiting on each thread to return from the configured "timeout", when real work could be accomplished on other servers using another thread.
+
+<a href="http://realworldnumbers.com//wp-content/uploads/2013/11/visual-representation-very-basic-of-how-a-4-thread-Spine-processes-each-SNMP-bulk-request-for-a-device.jpg"><img class="aligncenter size-medium wp-image-416" src="http://realworldnumbers.com//wp-content/uploads/2013/11/visual-representation-very-basic-of-how-a-4-thread-Spine-processes-each-SNMP-bulk-request-for-a-device-300x263.jpg" alt="visual representation (very basic) of how a 4-thread Spine processes each SNMP bulk request for a device.jpg" width="300" height="263" /></a>
+
+<span style="font-size: 13px; line-height: 19px;">And so, under the premise that you desire to reduce your polling time,  one of the most "controllable" levers at your command is the "Maximum OID's Per Get Request".</span>
+<p style="text-align: center;"><a href="http://realworldnumbers.com//wp-content/uploads/2013/11/How-to-set-Maximum-OIDs-Per-Get-Request-Where-to-set-it.jpg"><img class="wp-image-415 aligncenter" src="http://realworldnumbers.com//wp-content/uploads/2013/11/How-to-set-Maximum-OIDs-Per-Get-Request-Where-to-set-it.jpg" alt="How to set Maximum OID's Per Get Request - Where to set it" width="341" height="213" /></a></p>
+&nbsp;
+
+During your "Device" configuration, there is a field to fill out indicating "Maximum OID's Per Get Request".  The field is only used by the Spine poller, but is often overlooked.
+
+The "<a title="http://www.cacti.net/downloads/docs/html/using_spine.html" href="http://www.cacti.net/downloads/docs/html/using_spine.html">official" Spine documentation</a> defines this field as
+<p style="padding-left: 30px;"><span style="color: #000080;">The maximum number of snmp get OID's to issue per snmp request. Increasing this value speeds poller performance over slow links. The maximum value is 60 OID's. Please bear in mind, that some type of devices do not accept huge OID numbers and may fail if set above 1. That's why cacti 0.8.7 allows to define this value at device level</span></p>
+But there's so much more to this field.
+
+Essentially the goal of proper SNMP Maximum OIDs Per Get Request is to do the following:
+<ul>
+ 	<li>Try to request and retreive as many OID values as possible inside a single packet</li>
+ 	<li>Reduce the number of back-and-forth SNMP requests and responses to reduce overall polling time of this device</li>
+ 	<li>Choose a size that removes or reduces fragmentation</li>
+</ul>
+No two device types (a server SNMPd, an ILOM/ALOM port, a router, an F5 BIGIP, a printer) will ever have the same optimum number of OIDs to get, and therefore, experimentation will be required to determine the optimum size.
+
+There's the sloppy way, the scientifically calculated way, and the intensly studied way (not covered in this article).  Enjoy!
+
+&nbsp;
+<h2><span style="text-decoration: underline;">The Sloppy Way</span></h2>
+Essentially, the quickest way to check on the optimum size is to test using the snmpbulkwalk command from the CLI.   The idea here is to try different values of maximum number of OID's per get request and hone in on the best case scenario.
+
+Pros - quick, reasonable
+Cons - inaccurate for your polling situation (doesn't target the specific OIDs your script or cacti is after).
+
+<span style="color: #000080;">“-Cr1”</span> means 1 OIDs per request.
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# date ; snmpbulkwalk -v 2c -Cr1 -c "communitystring" 10.10.10.10 &gt; garbage.txt ; date</span>
+<span style="color: #000080;">Fri Feb 15 08:22:37 EST 2013</span>
+<span style="color: #000080;">Fri Feb 15 08:25:01 EST 2013</span>
+<span style="color: #000080;">=2 minutes, 24 seconds.</span></p>
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# date ; snmpbulkwalk -v 2c -Cr10 -c "communitystring" 10.10.10.10 &gt; garbage.txt ; date</span>
+<span style="color: #000080;">Fri Feb 15 08:25:53 EST 2013</span>
+<span style="color: #000080;">Fri Feb 15 08:26:08 EST 2013</span>
+<span style="color: #000080;">= 15 seconds.</span></p>
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# date ; snmpbulkwalk -v 2c -Cr15 -c "communitystring" 10.10.10.10 &gt; garbage.txt ; date</span>
+<span style="color: #000080;">Fri Feb 15 08:26:21 EST 2013</span>
+<span style="color: #000080;">Fri Feb 15 08:26:32 EST 2013</span>
+<span style="color: #000080;">= 11 seconds</span></p>
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# date ; snmpbulkwalk -v 2c -Cr20 -c "communitystring" 10.10.10.10 &gt; garbage.txt ; date</span>
+<span style="color: #000080;">Fri Feb 15 08:27:24 EST 2013</span>
+<span style="color: #000080;">Fri Feb 15 08:27:32 EST 2013</span>
+<span style="color: #000080;">=8 seconds</span></p>
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# date ; snmpbulkwalk -v 2c -Cr25 -c "communitystring" 10.10.10.10 &gt; garbage.txt ; date</span>
+<span style="color: #000080;">Fri Feb 15 08:28:01 EST 2013</span>
+<span style="color: #000080;">Fri Feb 15 08:28:07 EST 2013</span>
+<span style="color: #000080;">=6 seconds</span></p>
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# date ; snmpbulkwalk -v 2c -Cr30 -c "communitystring" 10.10.10.10 &gt; garbage.txt ; date</span>
+<span style="color: #000080;">Fri Feb 15 08:28:26 EST 2013</span>
+<span style="color: #000080;">Fri Feb 15 08:28:31 EST 2013</span>
+<span style="color: #000080;">=5 seconds</span></p>
+<p style="padding-left: 30px;"><span style="color: #000080;">[root@cactiserver ~]# date ; snmpbulkwalk -v 2c -Cr40 -c "communitystring" 10.10.10.10 &gt; garbage.txt ; date</span>
+<span style="color: #000080;">Fri Feb 15 08:28:54 EST 2013</span>
+<span style="color: #000080;">Fri Feb 15 08:28:58 EST 2013</span>
+<span style="color: #000080;">= 4 seconds</span></p>
+&nbsp;
+
+Bing bing bing bing!
+
+Notice the diminshing returns…  any higher on the number of OIDs per request, and the result will go higher… reason:  header overhead leaves only so much room for SNMP.   We have begun to induce fragmentation.
+
+&nbsp;
+<h2><span style="text-decoration: underline;">The Calculated Way</span></h2>
+The whole purpose of the calculation is to estimate exactly how many OID responses can fit in a single packet.  We are unconcerned with the request, as the responses are always larger and are the target of size reduction.
+
+Consider that every time SNMP queries an OID, the response to that query contains the original query OID.
+<p style="text-align: left;">Query = OID
+Response = OID+Value</p>
+Pros - most accurate, gets you to an ideal number faster
+Cons - time consuming, math, only a starter point.  Must be done for every device type and checked.
+
+&nbsp;
+<h3 style="text-align: left;">Step 1, Determine the amount of overhead in an SNMP query</h3>
+&nbsp;
+
+MTU : 1518 bytes
+
+After IP,UDP Headers remains: 1518-42=1476 bytes
+
+1476 – (snmp version code  1 byte,  community string notation 2bytes, community string repeated back VARbytes…  lets say about 16 bytes for the long community strings) =  1460bytes max
+
+1460 – SNMP response header (assuming no error, about 10 bytes ) = 1450 bytes
+
+There are approximately 1450 bytes available in an SNMP response to accommodate OID identification and the value residing at that OID.
+
+&nbsp;
+<h3>Step 2, Determine how many OID responses can be sent inside one packet</h3>
+This is the step where you will have to examine the actual <em>length in bytes</em> of the OID.
+
+Here's some examples.
+<p style="padding-left: 30px;">1) System interface errors
+.1.3.6.1.2.1.2.2.1.14  the OID string is 22 bytes long
+2) Juniper SRX Firewall accepts
+.1.3.6.1.4.1.94.1.24.1.1.47.0 the OID string is 30 bytes long
+3) F5 BIGIP Virtual Server number of connections.
+.1.3.6.1.4.1.3375.2.2.10.2.3.1.6.47.47.67.111.109.109.111.110.47.118.115.95.68.78.83.95.116.114.97.110.115.112.97.114.97.110.116.95.99.97.99.104.101.95.118.52.95.112.114.105.109.97.114.121.95.117.100.112
+<strong>the OID string is 204 bytes long!  Not even kidding!</strong></p>
+ Most can be summarised to be about 25 bytes, but a tcpdump will help you learn the exact length if it's unknown.  And so I will continue on the assumption that my average OID length for my purpose is 16 bytes long.
+
+&nbsp;
+
+1450 bytes / [(average OID length ~ 16 bytes) + (value responded to ~ could be up to a 64 bit register value of 8 bytes)] = 60.
+
+&nbsp;
+
+So 60 is the max that youa re allowed to specify, otherwise we start ending up with cutting the response into multiple packets – a time and resource waste.
+
+&nbsp;
+<h2><span style="text-decoration: underline;">Other Considerations for number of OIDs per Request</span></h2>
+<span style="font-size: 13px; line-height: 19px;">Sometimes a host device doesn’t like more than X requests on it’s plate at one time, regardless of whether or not you're breaking (like IBM AMM cards for example), and they start to chug after 15.  The "sloppy" method of testing will show this sooner rather than later.</span>
+
+Sometimes the servers that you are polling every 5 minutes are busy doing their own thing every 5 minutes.  To make your CLI testing more accurate, try polling at the 5 minute interval, and then try the same poll test 3 minutes later or so, just to see if the remote system is experiencing "chug".
+
+In our testing methodology, we failed to consider the "gathering time" that the remote system needs in order to fulfill a volley of requests.  In the case of consecutive OID's the wait time should be negligable, but in the case of "hunt and peck" OID's, the wait time could be significant while the remote system seeks the answers from all over it's MIB tree, or derives different answers on-the-fly to different TYPES of requests.  Spine has a mechanism to request in "bulk" where it can, but I'm unaware of the inner-workings.
+
+<span style="font-size: 13px; line-height: 19px;"> </span>
+<h2><span style="text-decoration: underline;">Final Thought</span></h2>
+So in the end, you need to experiment, especially when deploying for multiple devices of the same type.
+
+Other information:  If you're looking for information about Cacti Hashes, I <a title="CACTI Template Hashes – What I learned." href="http://realworldnumbers.com//cacti-template-hashes-what-i-learned/">wrote an article</a> a while back about this.
+
+A great website regarding the <a title="http://n00blab.com/how-to-install-cacti-spine-on-raspberry-pi/" href="http://n00blab.com/how-to-install-cacti-spine-on-raspberry-pi/">installation of CACTI on a Raspberry Pi.</a>
+
+I would also recommend keeping an eye on the <a title="CACTI Tuning – Script to Monitor Cacti Polling Time" href="http://realworldnumbers.com//cacti-tuning-script-to-monitor-cacti-polling-time/">polling cycle time with this handy little graph</a>.
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;
+
+&nbsp;]]></content:encoded>
+		<excerpt:encoded><![CDATA[]]></excerpt:encoded>
+		<wp:post_id>414</wp:post_id>
+		<wp:post_date><![CDATA[2013-11-07 13:15:20]]></wp:post_date>
+		<wp:post_date_gmt><![CDATA[2013-11-07 13:15:20]]></wp:post_date_gmt>
+		<wp:comment_status><![CDATA[open]]></wp:comment_status>
+		<wp:ping_status><![CDATA[open]]></wp:ping_status>
+		<wp:post_name><![CDATA[cacti-tuning-how-to-set-maximum-oids-per-get-request]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_parent>0</wp:post_parent>
+		<wp:menu_order>0</wp:menu_order>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<wp:post_password><![CDATA[]]></wp:post_password>
+		<wp:is_sticky>0</wp:is_sticky>
+		<category domain="post_tag" nicename="cacti"><![CDATA[cacti]]></category>
+		<category domain="post_tag" nicename="cacti-0-8-8"><![CDATA[cacti 0.8.8]]></category>
+		<category domain="post_tag" nicename="cacti-maximum-oid"><![CDATA[cacti Maximum OID]]></category>
+		<category domain="post_tag" nicename="cacti-oid"><![CDATA[cacti OID]]></category>
+		<category domain="post_tag" nicename="cacti-oids"><![CDATA[cacti OIDs]]></category>
+		<category domain="post_tag" nicename="cacti-tuning"><![CDATA[cacti tuning]]></category>
+		<category domain="post_tag" nicename="cacti-versions"><![CDATA[cacti versions]]></category>
+		<category domain="category" nicename="data"><![CDATA[data]]></category>
+		<category domain="post_tag" nicename="maximum-oids-per-get-request"><![CDATA[Maximum OID's Per Get Request]]></category>
+		<category domain="category" nicename="networks-and-data"><![CDATA[networks and data]]></category>
+		<category domain="post_tag" nicename="snmp"><![CDATA[snmp]]></category>
+		<category domain="post_tag" nicename="snmp-oids"><![CDATA[snmp oids]]></category>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[_edit_last]]></wp:meta_key>
+			<wp:meta_value><![CDATA[2]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[fsb_social_facebook]]></wp:meta_key>
+			<wp:meta_value><![CDATA[0]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[fsb_social_twitter]]></wp:meta_key>
+			<wp:meta_value><![CDATA[0]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[fsb_social_google]]></wp:meta_key>
+			<wp:meta_value><![CDATA[0]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[fsb_social_pinterest]]></wp:meta_key>
+			<wp:meta_value><![CDATA[0]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:postmeta>
+			<wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key>
+			<wp:meta_value><![CDATA[647]]></wp:meta_value>
+		</wp:postmeta>
+		<wp:comment>
+			<wp:comment_id>667</wp:comment_id>
+			<wp:comment_author><![CDATA[ptoo]]></wp:comment_author>
+			<wp:comment_author_email><![CDATA[nomorelies@obamaiswonderful.gov]]></wp:comment_author_email>
+			<wp:comment_author_url></wp:comment_author_url>
+			<wp:comment_author_IP><![CDATA[199.167.138.223]]></wp:comment_author_IP>
+			<wp:comment_date><![CDATA[2013-11-07 20:54:44]]></wp:comment_date>
+			<wp:comment_date_gmt><![CDATA[2013-11-07 20:54:44]]></wp:comment_date_gmt>
+			<wp:comment_content><![CDATA[I find that over-watering a cacti will soon be the death of any such plant left in my care.
+
+Seriously though, I love your blog but some of your subjects are beyond my knowledge. I'm sure you have your various groups of readers of all types and I hope you keep up daily postings.
+
+All the best from Kitchener, Ontario]]></wp:comment_content>
+			<wp:comment_approved><![CDATA[1]]></wp:comment_approved>
+			<wp:comment_type><![CDATA[]]></wp:comment_type>
+			<wp:comment_parent>0</wp:comment_parent>
+			<wp:comment_user_id>0</wp:comment_user_id>
+		</wp:comment>
+		<wp:comment>
+			<wp:comment_id>668</wp:comment_id>
+			<wp:comment_author><![CDATA[realworldnumbers]]></wp:comment_author>
+			<wp:comment_author_email><![CDATA[real@realworldnumbers.com]]></wp:comment_author_email>
+			<wp:comment_author_url></wp:comment_author_url>
+			<wp:comment_author_IP><![CDATA[99.250.182.66]]></wp:comment_author_IP>
+			<wp:comment_date><![CDATA[2013-11-08 00:27:35]]></wp:comment_date>
+			<wp:comment_date_gmt><![CDATA[2013-11-08 00:27:35]]></wp:comment_date_gmt>
+			<wp:comment_content><![CDATA[I approved your comment mainly cause it's funny.  Thanks for reading!]]></wp:comment_content>
+			<wp:comment_approved><![CDATA[1]]></wp:comment_approved>
+			<wp:comment_type><![CDATA[]]></wp:comment_type>
+			<wp:comment_parent>667</wp:comment_parent>
+			<wp:comment_user_id>2</wp:comment_user_id>
+		</wp:comment>
+		<wp:comment>
+			<wp:comment_id>669</wp:comment_id>
+			<wp:comment_author><![CDATA[CACTI Tuning &#8211; Script to Monitor Cacti Polling Time | RealWorldNumbers]]></wp:comment_author>
+			<wp:comment_author_email><![CDATA[]]></wp:comment_author_email>
+			<wp:comment_author_url>http://realworldnumbers.com//cacti-tuning-script-to-monitor-cacti-polling-time/</wp:comment_author_url>
+			<wp:comment_author_IP><![CDATA[50.62.228.1]]></wp:comment_author_IP>
+			<wp:comment_date><![CDATA[2013-11-19 09:28:50]]></wp:comment_date>
+			<wp:comment_date_gmt><![CDATA[2013-11-19 09:28:50]]></wp:comment_date_gmt>
+			<wp:comment_content><![CDATA[[&#8230;] This is an article in my series of Cacti Tuning.  Please see another great point about tuning the max OIDs per request. [&#8230;]]]></wp:comment_content>
+			<wp:comment_approved><![CDATA[1]]></wp:comment_approved>
+			<wp:comment_type><![CDATA[pingback]]></wp:comment_type>
+			<wp:comment_parent>0</wp:comment_parent>
+			<wp:comment_user_id>0</wp:comment_user_id>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_result]]></wp:meta_key>
+				<wp:meta_value><![CDATA[false]]></wp:meta_value>
+			</wp:commentmeta>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_history]]></wp:meta_key>
+				<wp:meta_value><![CDATA[]]></wp:meta_value>
+			</wp:commentmeta>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_history]]></wp:meta_key>
+				<wp:meta_value><![CDATA[]]></wp:meta_value>
+			</wp:commentmeta>
+		</wp:comment>
+		<wp:comment>
+			<wp:comment_id>670</wp:comment_id>
+			<wp:comment_author><![CDATA[KD]]></wp:comment_author>
+			<wp:comment_author_email><![CDATA[arnoldkcentos@gmail.com]]></wp:comment_author_email>
+			<wp:comment_author_url></wp:comment_author_url>
+			<wp:comment_author_IP><![CDATA[73.158.157.246]]></wp:comment_author_IP>
+			<wp:comment_date><![CDATA[2015-08-24 00:30:35]]></wp:comment_date>
+			<wp:comment_date_gmt><![CDATA[2015-08-24 00:30:35]]></wp:comment_date_gmt>
+			<wp:comment_content><![CDATA[for 60 odd esxi nodes what should be the value ?]]></wp:comment_content>
+			<wp:comment_approved><![CDATA[1]]></wp:comment_approved>
+			<wp:comment_type><![CDATA[]]></wp:comment_type>
+			<wp:comment_parent>0</wp:comment_parent>
+			<wp:comment_user_id>0</wp:comment_user_id>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_result]]></wp:meta_key>
+				<wp:meta_value><![CDATA[false]]></wp:meta_value>
+			</wp:commentmeta>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_history]]></wp:meta_key>
+				<wp:meta_value><![CDATA[]]></wp:meta_value>
+			</wp:commentmeta>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_history]]></wp:meta_key>
+				<wp:meta_value><![CDATA[]]></wp:meta_value>
+			</wp:commentmeta>
+		</wp:comment>
+		<wp:comment>
+			<wp:comment_id>671</wp:comment_id>
+			<wp:comment_author><![CDATA[realworldnumbers]]></wp:comment_author>
+			<wp:comment_author_email><![CDATA[real@realworldnumbers.com]]></wp:comment_author_email>
+			<wp:comment_author_url>http://realworldnumbers.com/</wp:comment_author_url>
+			<wp:comment_author_IP><![CDATA[216.198.139.38]]></wp:comment_author_IP>
+			<wp:comment_date><![CDATA[2016-07-28 02:26:13]]></wp:comment_date>
+			<wp:comment_date_gmt><![CDATA[2016-07-28 02:26:13]]></wp:comment_date_gmt>
+			<wp:comment_content><![CDATA[It really depends on what MIB you're polling and the length of the expected results...  The idea here is you need to use the experimental method I outline in order to achieve the optimum results.]]></wp:comment_content>
+			<wp:comment_approved><![CDATA[1]]></wp:comment_approved>
+			<wp:comment_type><![CDATA[]]></wp:comment_type>
+			<wp:comment_parent>670</wp:comment_parent>
+			<wp:comment_user_id>2</wp:comment_user_id>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_result]]></wp:meta_key>
+				<wp:meta_value><![CDATA[false]]></wp:meta_value>
+			</wp:commentmeta>
+			<wp:commentmeta>
+				<wp:meta_key><![CDATA[akismet_history]]></wp:meta_key>
+				<wp:meta_value><![CDATA[]]></wp:meta_value>
+			</wp:commentmeta>
+		</wp:comment>
+	</item>
