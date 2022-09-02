@@ -19,16 +19,21 @@ Challenges encountered with OIDs:
 *A sweet spot exists to reduce overall poll time on a per-host basis, which can be found through experimentation, but that's time consuming
 
 A previous article I wrote on how to tune OIDs and the theory behind it.
-http://realworldnumbers.com/cacti-tuning-how-to-set-maximum-oids-per-get-request/
+See file: cacti-tuning-how-to-set-maximum-oids-per-get-request.xml 
+Deadlink: http://realworldnumbers.com/cacti-tuning-how-to-set-maximum-oids-per-get-request/
+Dang.  I used to own that domain and I stupidly let it go.  I will put the cached article in xml format with this repo.  
+
 
 # Download
 https://github.com/patrickscottbest/hammerOID/archive/hammerOID.zip
 
 # Current Release
  * November 19, 2017: Version 0.8
+ * September 1, 2022: Version 0.8.1
 
 # Release Notes
  * 0.8: Release of Cacti Hammer-OID Plugin
+ * 0.8.1: Updates to Readme.  I doubt this thing works anymore, but maybe it shouldn't die.  OID length still a huge problem with many vendors and large installations.
 
 # Purpose
  * To enable Cacti Users to review individual poller times and tweak device settings for **Maximum OIDs Per Get Request**.
