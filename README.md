@@ -1,6 +1,9 @@
 # Download
 https://github.com/patrickscottbest/hammerOID/archive/hammerOID.zip
 
+# Updates
+20221208 - I intend to pull this project up from beyond the grave.
+
 # About hammerOID
 hammerOID is a Cacti plugin designed to give insight to overall poller health and provide automated machine learning performance tools for setting optimum Maximum SNMP Object Identifiers (Max OIDs).
 
