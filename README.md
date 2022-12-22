@@ -1,8 +1,24 @@
+# Termination of Project
+
+Over the recent years, cacti has matured and has absorbed this idea into a new "Bulk Walk Maximum Repetitions" feature, which offers an auto detect method to determine the optimal number of repetitions.
+
+While this is sufficient for most uses, there are some cases such as F5 load balancers, where manual intervention is still required in order to not exceed payload maximums.
+
+As such, i will be terminating this project.  It was fun.  Check out a still-very-useful spinoff project called "OIDrage" at https://github.com/patrickscottbest/OIDrage
+
+Thanks!
+
+Patrick 
+20221221.
+
+
+
 # Download
 https://github.com/patrickscottbest/hammerOID/archive/hammerOID.zip
 
 # Updates
 20221208 - I intend to pull this project up from beyond the grave.
+20221221 - Abandoned.
 
 # About hammerOID
 hammerOID is a Cacti plugin designed to give insight to overall poller health and provide automated machine learning performance tools for setting optimum Maximum SNMP Object Identifiers (Max OIDs).
